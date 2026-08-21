@@ -1,12 +1,14 @@
 import http from "http";
 import { config } from "./commons/config";
-import logger from "./infrastructures/logger/winston/winston-config";
-import { createServer } from "./infrastructures/http/create-server";
-import { createSocket } from "./infrastructures/socket/create-socket";
 import { container } from "./infrastructures/container";
-import { createBroker } from "./infrastructures/message/create-broker";
+import { createServer } from "./infrastructures/http/create-server";
+import { WinstonLoggerService } from "./infrastructures/logger/winston/winston-service";
+import { createBroker } from "./infrastructures/message/rabbitmq/create-broker";
+import { createSocket } from "./infrastructures/socket/create-socket";
 
 (async () => {
+    const logger = container.getInstance(WinstonLoggerService.name)
+
     try {
         // 1. Inisialisasi HTTP / Express App
         const app = await createServer(container);

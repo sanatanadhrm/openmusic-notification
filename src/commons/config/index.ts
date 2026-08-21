@@ -15,7 +15,7 @@ const envSchema = z.object({
     REFRESH_TOKEN_KEY: z.string().min(1, "REFRESH_TOKEN_KEY wajib diisi"),
     ACCESS_TOKEN_AGE: z.coerce.number().default(3000),
 
-    RABBITMQ_SERVER: z.string().optional(),
+    RABBITMQ_SERVER: z.string(),
 });
 
 const parsed = envSchema.safeParse(process.env);

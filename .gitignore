@@ -4,3 +4,8 @@ node_modules
 dist/
 build/
 /src/Infrastructures/database/postgresql/generated/prisma
+# AI / Agent IDE configurations
+.agents/
+.claude/
+.windsurf/
+skills-lock.json

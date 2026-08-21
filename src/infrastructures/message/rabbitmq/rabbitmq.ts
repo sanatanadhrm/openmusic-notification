@@ -29,40 +29,11 @@ export class RabbitMQApp {
         return this;
     }
 
-    // 2. Mirip app.listen() di Express (Otomatis Connect -> Setup Channel -> Consume)
+    // 2. Mirip app.listen() di Express (Orchestrator)
     async listen(): Promise<void> {
         try {
-            // A. Buka koneksi & channel di dalam sini
-            this._connection = await amqp.connect(this._serverUrl);
-            this._channel = await this._connection.createChannel();
-            await this._channel.prefetch(this._prefetch);
-
-            this._logger?.info("[RabbitMQApp] Terhubung ke broker dan siap melayani antrean");
-
-            // B. Dengarkan semua antrean yang sudah didaftarkan lewat useQueue
-            for (const { queueName, router } of this._queues) {
-                await this._channel.assertQueue(queueName, { durable: true });
-
-                this._channel.consume(queueName, async (msg) => {
-                    if (!msg) return;
-
-                    try {
-                        const { event, data } = JSON.parse(msg.content.toString());
-                        this._logger?.info(`[RabbitMQApp] Event '${event}' masuk di antrean '${queueName}'`);
-
-                        // Dispatch ke handler yang cocok
-                        await router.dispatch(event, data);
-
-                        // ACK pesan
-                        this._channel?.ack(msg);
-                    } catch (err) {
-                        this._logger?.error(`[RabbitMQApp] Error memproses pesan di antrean '${queueName}':`, err);
-                        this._channel?.nack(msg, false, false);
-                    }
-                });
-
-                this._logger?.info(`[RabbitMQApp] Mendengarkan antrean: '${queueName}'`);
-            }
+            await this._connectToBroker();
+            await this._setupConsumers();
         } catch (error) {
             this._logger?.error("[RabbitMQApp] Gagal menyalakan consumer:", error);
             throw error;
@@ -74,5 +45,51 @@ export class RabbitMQApp {
         await this._channel?.close();
         await this._connection?.close();
         this._logger?.info("[RabbitMQApp] Koneksi ditutup.");
+    }
+
+    // --- PRIVATE METHODS ---
+
+    /**
+     * Bertugas murni untuk membuka koneksi TCP dan membuat Channel AMQP
+     */
+    private async _connectToBroker(): Promise<void> {
+        this._connection = await amqp.connect(this._serverUrl);
+        this._channel = await this._connection.createChannel();
+        await this._channel.prefetch(this._prefetch);
+
+        this._logger?.info("[RabbitMQApp] Terhubung ke broker dan siap melayani antrean");
+    }
+
+    /**
+     * Bertugas murni untuk mendaftarkan dan mendengarkan (consume) setiap antrean yang terdaftar
+     */
+    private async _setupConsumers(): Promise<void> {
+        if (!this._channel) {
+            throw new Error("Koneksi RabbitMQ belum terbentuk saat setup consumers.");
+        }
+
+        for (const { queueName, router } of this._queues) {
+            await this._channel.assertQueue(queueName, { durable: true });
+
+            this._channel.consume(queueName, async (msg) => {
+                if (!msg) return;
+
+                try {
+                    const { event, data } = JSON.parse(msg.content.toString());
+                    this._logger?.info(`[RabbitMQApp] Event '${event}' masuk di antrean '${queueName}'`);
+
+                    // Dispatch ke handler yang cocok
+                    await router.dispatch(event, data);
+
+                    // ACK pesan
+                    this._channel?.ack(msg);
+                } catch (err) {
+                    this._logger?.error(`[RabbitMQApp] Error memproses pesan di antrean '${queueName}':`, err);
+                    this._channel?.nack(msg, false, false);
+                }
+            });
+
+            this._logger?.info(`[RabbitMQApp] Mendengarkan antrean: '${queueName}'`);
+        }
     }
 }
