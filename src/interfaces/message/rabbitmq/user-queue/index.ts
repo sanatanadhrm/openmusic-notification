@@ -5,7 +5,7 @@ import { SendNotificationUseCase } from "@/applications/usecase/notification/sen
 import { WinstonLoggerService } from "@/infrastructures/logger/winston/winston-service";
 import { BrokerRouter } from "@/infrastructures/message/middleware/broker-router";
 
-export default (container: Container) => {
+export const userQueue = (container: Container): BrokerRouter => {
     const router = new BrokerRouter();
 
     // 1. Resolve Use Case dari Container
@@ -23,8 +23,5 @@ export default (container: Container) => {
     routes(router, handler);
 
     // 4. Return nama antrean dan routernya
-    return {
-        queueName: "user_registered_queue",
-        router,
-    };
+    return router
 };
