@@ -6,6 +6,9 @@ import { NotificationDispatcher } from "@/infrastructures/dispatcher/notificatio
 import { SendNotificationUseCase } from "@/applications/usecase/notification/send-notification-usecase";
 import { GetUserNotificationsUseCase } from "@/applications/usecase/notification/get-user-notifications";
 import { MarkNotificationReadUseCase } from "@/applications/usecase/notification/mark-notification-read";
+import { RabbitMQConnection } from "./message/rabbitmq/rabbitmq-connection";
+import { RabbitMQService } from "./message/rabbitmq/rabbitmq-service";
+import { RabbitMQListener } from "./message/rabbitmq/rabbitmq-listener";
 
 const container = createContainer();
 
@@ -36,6 +39,38 @@ container.register([
                 { internal: WinstonLoggerService.name },
             ],
         },
+    },
+    {
+        key: RabbitMQConnection.name,
+        Class: RabbitMQConnection,
+        parameter: {
+            injectType: "destructuring",
+            dependencies: [
+                { name: "logger", internal: WinstonLoggerService.name }
+            ]
+        }
+    },
+    {
+        key: RabbitMQService.name,
+        Class: RabbitMQService,
+        parameter: {
+            injectType: "destructuring",
+            dependencies: [
+                { name: "logger", internal: WinstonLoggerService.name },
+                { name: "connection", internal: RabbitMQConnection.name }
+            ]
+        }
+    },
+    {
+        key: RabbitMQListener.name,
+        Class: RabbitMQListener,
+        parameter: {
+            injectType: "destructuring",
+            dependencies: [
+                { name: "logger", internal: WinstonLoggerService.name },
+                { name: "connection", internal: RabbitMQConnection.name }
+            ]
+        }
     },
 ]);
 
